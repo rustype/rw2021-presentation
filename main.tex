@@ -1,14 +1,150 @@
-%!TEX root = ./main.tex
+% !TEX root = ./main.tex
 \documentclass{beamer}
 \usetheme{metropolis}
-\title{Typestates and Rust}
+\title{Typestates \& Rust}
 \date{28th March 2021}
 \author{José Duarte}
 \institute{FCT NOVA}
+
+\usepackage{listings}
+\lstset{
+    basicstyle=\small\ttfamily,
+    frame=single,
+    % numberstyle=\tiny,
+    % numbers=left
+}
+
 \begin{document}
-  \maketitle
-  \section{Introduction}
-  \begin{frame}{Typestates}
-    Hello, world!
-  \end{frame}
+\maketitle
+% \section{Introduction}
+\begin{frame}
+    \frametitle{What Are Typestates?}
+    Typestates capture aspects of an object's state.
+    % e.g. closed vs open file
+    Approaches to typestates can be:
+    \begin{itemize}
+        \item \textbf{State-Based Designs} - checking state during runtime.
+        \item \textbf{Typestate Checkers} - static checkers that verify code for correct object usage.
+        \item \textbf{Language-Based} - design a language which supports typestates as first-class citizens. % e.g. Plaid
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{Why Are Typestates Useful?}
+    Consider the \texttt{File} example:
+    \begin{lstlisting}
+Scanner s = new Scanner(System.in);
+s.nextLine();   // ok
+s.close();      // ok
+s.nextLine();   // IllegalStateException
+    \end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{Why Are Typestates Useful?}
+    What we really want:
+    \begin{lstlisting}
+| s.nextLine();
+| ^^^^^^^^^^^^
+= error: `s` was closed in line 3
+    \end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{Why Are Typestates Useful?}
+    To achieve it, typestates lift state to the type level:
+    \begin{lstlisting}
+Scanner[Open] s = new Scanner(System.in);
+s.nextLine();
+Scanner[Closed] s = s.close();
+s.nextLine();
+    \end{lstlisting}
+    The last line now fails to typecheck since \texttt{Scanner[Closed]}
+    does not have function \texttt{nextLine}.
+\end{frame}
+
+\begin{frame}
+    \frametitle{Typestates \& Rust}
+
+    Typestates are not new to Rust.
+    \begin{itemize}
+        \item There are several blog posts on the subject.
+        \item The \textbf{Embedded Rust Book} makes use of them to model peripherals.
+        \item The \texttt{state\_machine\_future} crate leverages typestates to provide type safe \texttt{Future}s.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}
+    \frametitle{Typestates \& Rust - Problems}
+
+    \begin{itemize}
+        \item Typestates require a lot of boilerplate.
+        \item Existing crates either do not provide compile-time errors or are limited in scope.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{Typestates \& Rust - Boilerplate}
+
+    \begin{lstlisting}
+    boilerplate demo
+    \end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{How Do We Solve It?}
+    Macros! They are designed to write the boilerplate for us!
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{The solution}
+    Currently, we have implemented a small proof of concept which allows a user to define a typestated structure as:
+    \begin{lstlisting}
+typestate!(
+    strict Drone [Idle, Hovering, Flying] {
+        x: f32,
+        y: f32
+    }
+);
+    \end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{The Solution}
+    The previous code will generate:
+    \begin{itemize}
+        \item A \texttt{Drone} structure.
+        \item The state structures \texttt{Idle, Hovering, Flying}.
+        \item Some relevant \texttt{trait}s and \texttt{impl}s.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{Limitations \& Moving Forward}
+    \texttt{typestate!} is implemented with \texttt{macro\_rules},
+    this has the downsides of being limited and barely readable.
+
+    Ideally we want to write a full-fledged DSL,
+    reducing the amount of code the developer has to write.
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{A Peek Into The Future}
+    \begin{lstlisting}
+ts! {
+    struct Drone { x: f32, y: f32 }
+
+    fn ping_coordinates(&self) -> (f32, f32);
+
+    state Idle [last_landing: Time] {
+        transition take_off(self) -> Hovering;
+    }
+
+    state Hovering {
+        fn take_picture(&self, dst: &str);
+        transition land(self) -> Idle;
+    }
+}
+    \end{lstlisting}
+\end{frame}
 \end{document}

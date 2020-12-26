@@ -1,11 +1,13 @@
 % !TEX root = ./main.tex
-\documentclass{beamer}
+\documentclass[notes]{beamer}
 \usetheme{metropolis}
 \title{Typestates \& Rust}
 \date{28th March 2021}
 \author{José Duarte}
 \institute{FCT NOVA}
 
+\usepackage{pgfpages}
+\usepackage{hyperref}
 \usepackage{listings}
 \lstset{
     basicstyle=\small\ttfamily,
@@ -14,8 +16,24 @@
     % numbers=left
 }
 
+\setbeameroption{show notes on second screen}
+
 \begin{document}
-\maketitle
+
+\begin{frame}[plain]
+    \titlepage
+
+    \note{
+        Hello everyone! My name is José Duarte and today I will be talking about using typestates in Rust.
+        I'll present:
+        \begin{itemize}
+            \item A brief definition of typestates.
+            \item Why they are useful.
+            \item And finally I'll discuss their relationship with Rust and my proposal to integrate them in the ecosystem.
+        \end{itemize}
+    }
+\end{frame}
+% \maketitle
 % \section{Introduction}
 \begin{frame}
     \frametitle{What Are Typestates?}
@@ -27,6 +45,14 @@
         \item \textbf{Typestate Checkers} - static checkers that verify code for correct object usage.
         \item \textbf{Language-Based} - design a language which supports typestates as first-class citizens. % e.g. Plaid
     \end{itemize}
+
+    \note{
+        The aim of typestates is to use the type system to capture aspects of an object state,
+        essentially lifting state to the type level.
+
+        There are several approaches to typestates,
+        the one I'll be presenting resides between typestate checkers and a "typestatable" language.
+    }
 \end{frame}
 
 \begin{frame}[fragile]
@@ -38,6 +64,16 @@ s.nextLine();   // ok
 s.close();      // ok
 s.nextLine();   // IllegalStateException
     \end{lstlisting}
+
+    \note{
+        The first concern many may have is "Why should I care?",
+        lets start by introducing a simple example.
+        Consider the code on the slide,
+        the developer creates the scanner, reads the line and closes,
+        the developer then tries to read a line again causing an \texttt{IllegalStateException}.
+        This should be avoidable without effort from the programmer,
+        its 2021, we want the computer to do the job for us.
+    }
 \end{frame}
 
 \begin{frame}[fragile]
@@ -48,6 +84,12 @@ s.nextLine();   // IllegalStateException
 | ^^^^^^^^^^^^
 = error: `s` was closed in line 3
     \end{lstlisting}
+
+    \note{
+        Ideally we want something like shown,
+        a compile time error telling the programmer:
+        \textit{You closed the stream dummy!}
+    }
 \end{frame}
 
 \begin{frame}[fragile]
@@ -61,17 +103,106 @@ s.nextLine();
     \end{lstlisting}
     The last line now fails to typecheck since \texttt{Scanner[Closed]}
     does not have function \texttt{nextLine}.
+
+    \note{
+        Enter typestates!
+        By lifting state to the type level,
+        the open stream is different from the closed one!
+        The closed stream interface should be different from the open one
+        and thus, we will get the error in the previous slide!
+    }
 \end{frame}
 
 \begin{frame}
-    \frametitle{Typestates \& Rust}
+    \frametitle{Why Rust?}
 
-    Typestates are not new to Rust.
+    One of the core pillars of Rust is \textbf{safety}.
+
+    Typestates help developers make less mistakes and write safer software!
+
+    Rust also helps deal with one of the biggest obstacles in the way of typestates: \textbf{Aliasing}.
+
+    \note{
+        One of Rust's main focus is safety, it provides mechanisms for memory and concurrency,
+        so why not development safety?
+
+        Typestates aid the developer in the process of writing bug-free code!
+
+        Another key point in favor of Rust resides in its aliasing control,
+        disallowing multiple mutable borrows enables typestates!
+    }
+\end{frame}
+
+\begin{frame}
+    \frametitle{Weren't Typestates Removed Rust?}
+
+    Rust \textit{used to} have a form of typestate, manifested as \textit{pre} and \textit{post} conditions.
+    It was removed due to not pulling its weight.
+
+    However! \href{https://github.com/rust-lang/rust/issues/1805\#issuecomment-3951241}{In the words of Rust's author}:
+
+    \alert{\textit{That said, I really want to encourage use of typestate, not just because "it's a cool word / concept" but rather because it's really assert in slightly more formal attire, and I love assert in my code.}}
+
+    \note{
+        As some may know, typestates were a feature of pre-1.0 Rust.
+
+        They were taken down since their cost-benefit ratio was deemed not worth it.
+        However, Rust's author expressed support for typestates!
+    }
+\end{frame}
+
+\begin{frame}
+    \frametitle{Typestates \& Rust - Present Day}
+
+    We've established that typestates are not new to Rust,
+    in fact they are alive and well!
     \begin{itemize}
         \item There are several blog posts on the subject.
         \item The \textbf{Embedded Rust Book} makes use of them to model peripherals.
         \item The \texttt{state\_machine\_future} crate leverages typestates to provide type safe \texttt{Future}s.
     \end{itemize}
+
+    \note{
+        While they were removed, typestates live on in the form of blog posts, references in Rust books and crates!
+    }
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{Typestates \& Rust - Intuition}
+
+    We are able to model typestates with the Rust typesystem.
+
+    The key intuition is:
+    \alert{Take ownership and return the new state.}
+
+    \begin{lstlisting}
+impl OldState {
+    fn transition(self) -> NewState {...}
+}
+    \end{lstlisting}
+
+    \note{
+        Currently we are able to model typestates within Rust,
+        dealing with aliasing is simple, we take ownership of the old state,
+        transition to the new one and return!
+    }
+\end{frame}
+
+\begin{frame}[fragile]
+    \frametitle{Typestates \& Rust - Advantages}
+
+    \begin{itemize}
+        \item The compiler helps you track state (compiler knows the types $+$ types express state $\Rightarrow$ compiler knows the state).
+        \item You can statically restrict functionality based on state, instead of hoping you don't forget a runtime check.
+    \end{itemize}
+
+    \note{
+        This approach has some advantages:
+        \begin{itemize}
+            \item Since state is lifted to the type level, the compiler will aid you tracking your application's state.
+            \item State is reflected on APIs and thus, an API will change as its state changes, restricting impossible function calls, relieving the programmer from being required to remember an \texttt{if} to ensure the application doesn't panic.
+        \end{itemize}
+    }
 \end{frame}
 
 \begin{frame}
@@ -79,26 +210,81 @@ s.nextLine();
 
     \begin{itemize}
         \item Typestates require a lot of boilerplate.
+        \item Collections do not work that well with typestates.
         \item Existing crates either do not provide compile-time errors or are limited in scope.
     \end{itemize}
+
+    \note{
+        However, typestates are not without problems!
+        \begin{itemize}
+            \item They require a lot of boilerplate.
+            \item Existing collections do not work with typestates.
+            \item Crates that provide close mechanisms do not provide compile-time errors or are limited in scope.
+        \end{itemize}
+    }
 \end{frame}
 
-\begin{frame}[fragile]
+\begin{frame}[fragile, label={boilerplate-1}]
+    \frametitle{Typestates \& Rust - Boilerplate}
+
+    \begin{lstlisting}[basicstyle=\tiny]
+pub trait SealedRequestParserState {}
+impl<S> SealedRequestParserState for super::RequestLine<S>
+    where S: super::RequestLineParserState {}
+impl SealedRequestParserState for super::Header {}
+impl SealedRequestParserState for super::Body {}
+
+pub trait SealedRequestLineParserState {}
+impl SealedRequestLineParserState for super::Method {}
+impl SealedRequestLineParserState for super::Uri {}
+impl SealedRequestLineParserState for super::Version {}
+
+pub trait RequestParserState: SealedRequestParserState {}
+impl<S> RequestParserState for RequestLine<S>
+    where S: RequestLineParserState {}
+impl RequestParserState for Header {}
+impl RequestParserState for Body {}
+
+pub trait RequestLineParserState: SealedRequestLineParserState {}
+impl RequestLineParserState for Method {}
+impl RequestLineParserState for Uri {}
+impl RequestLineParserState for Version {}
+    \end{lstlisting}
+    \alert{This is just to ensure no one adds extra states!}
+\end{frame}
+
+\begin{frame}[fragile, label={boilerplate-2}]
     \frametitle{Typestates \& Rust - Boilerplate}
 
     \begin{lstlisting}
-    boilerplate demo
+let parser = HttpRequestParser
+    ::<RequestLine<Method>>::start(packet);
+let parser = parser.parse()?;
+let parser = parser.parse()?;
+let parser = parser.parse()?;
+let parser = parser.parse()?;
+let request = parser.parse();
+println!("{:#?}", request);
     \end{lstlisting}
+    \alert{You also need to re-declare the variable as state evolves.}
 \end{frame}
 
 \begin{frame}[fragile]
     \frametitle{How Do We Solve It?}
     Macros! They are designed to write the boilerplate for us!
+
+    \note{
+        To solve the boilerplate problem we can use macros!
+        That's what they were built for!
+
+        Rust's macros allow us to write a DSL,
+        which we can then "compile" back into Rust.
+    }
 \end{frame}
 
 \begin{frame}[fragile]
     \frametitle{The Solution}
-    Currently, we have implemented a small proof of concept which allows a user to define a typestated structure as:
+    Currently, I have implemented a small proof of concept which allows a user to define a typestated structure as:
     \begin{lstlisting}
 typestate!(
     strict Drone [Idle, Hovering, Flying] {
@@ -107,16 +293,26 @@ typestate!(
     }
 );
     \end{lstlisting}
+
+    \note{
+        I've implemented a small PoC using \texttt{macro\_rules},
+        it is severely limited but already takes care of some boilerplate!
+    }
 \end{frame}
 
 \begin{frame}[fragile]
     \frametitle{The Solution}
     The previous code will generate:
     \begin{itemize}
-        \item A \texttt{Drone} structure.
+        \item A \texttt{Drone<State>} structure.
         \item The state structures \texttt{Idle, Hovering, Flying}.
         \item Some relevant \texttt{trait}s and \texttt{impl}s.
     \end{itemize}
+
+    \note{
+        The previous snippet will provide you with a Drone structure, generic over state,
+        the state structures and some \texttt{trait}s and \texttt{impl}s to implement the sealed "hierarchy".
+    }
 \end{frame}
 
 \begin{frame}[fragile]
@@ -126,6 +322,12 @@ typestate!(
 
     Ideally we want to write a full-fledged DSL,
     reducing the amount of code the developer has to write.
+
+    \note{
+        The current implementation is severely limited and barely readable,
+        ideally, the final product will be a complete DSL, which allows the programmer to specify a typestates and possible transitions,
+        the programmer will then only be required to add the \texttt{impl}s.
+    }
 \end{frame}
 
 \begin{frame}[fragile]
@@ -146,12 +348,28 @@ ts! {
     }
 }
     \end{lstlisting}
+
+    \note{
+        Our first draft looks as follows.
+
+        \texttt{struct}s are declared as regular Rust structures,
+        functions available to every state are declared freely,
+        states and their relationship are declared as follows,
+        the previous state is declared in square brackets,
+        the next is declared with the \texttt{transition} keyword and a function signature.
+
+        The syntax is not fixed, as a matter of fact nothing is and feedback would be much appreciated.
+    }
 \end{frame}
 
 \begin{frame}
     \frametitle{More Information}
 
-    You can track progress in \texttt{github.com/rustype/typestate-rs}.
+    You can track progress and provide feedback at
+    \href{https://github.com/rustype/typestate-rs}{\texttt{github.com/rustype/typestate-rs}}.
+
+    Code for slides \autoref{boilerplate-1} \& \autoref{boilerplate-2} can be found at
+    \href{https://github.com/rustype/http-parser}{\texttt{github.com/rustype/http-parser}}.
 
 \end{frame}
 \end{document}

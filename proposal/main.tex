@@ -5,16 +5,19 @@
     top=20mm,
     left=25mm,
     right=25mm,
-    bottom=20mm
+    bottom=25mm
 }
 
 \usepackage{fontspec}
 \setmonofont[Contextuals={Alternate}]{Jetbrains Mono}[Scale=MatchLowercase]
+
 \usepackage{minted}
 \setminted{
     linenos,
     frame=single
 }
+
+\usepackage{hyperref}
 
 \title{Rust \& Typestates}
 \author{José Duarte}
@@ -73,5 +76,95 @@ s.nextLine();                               // compile-time error
 
 The compiler is now able to provide the developer with an error at compile-time since it now knows that the \texttt{Scanner} is closed and thus,
 it does not have a function \texttt{nextLine}.
+
+\subsection*{Why Rust?}
+
+One of Rust's core values is safety,
+such value manifests itself in the form of memory safety,
+and the provision of tools to prevent concurrency problems.
+The mindset is also imbued in the community,
+an example would be Sealed Rust\footnote{\url{https://ferrous-systems.com/blog/sealed-rust-the-plan/}},
+an effort to bring Rust to the safety critical domain.
+
+\subsubsection*{Alias Control}
+
+Besides the pro-safety mentality of Rust,
+another key detail which makes Rust a solid candidate for typestates is its alias control.
+
+By definition, typestates are incompatible with aliasing,
+this is due to the fact that if an object is being used by $N$ clients,
+when a client mutates an object, all other clients guarantees are broken.
+Back to the stream example, if a client closes the stream,
+all other clients may crash since they may try to read from a stream which is now closed.
+
+While Rust cannot enforce a truly linear typesystem (in which objects must be used \emph{exactly once}),
+it is able to enforce an affine type system (or \emph{at most once} usage), as demonstrated bellow.
+
+\begin{minted}{rust}
+let x = 0
+let y = x;
+println!("{}", x); // error, value moved in line 2
+\end{minted}
+
+\section*{Typestating Rust}
+
+Rust previously had a typestate system which was removed in version 0.4 since it "did not pull its own weight".
+The idea I propose does is not aimed at bringing back the old typestate system but rather at leveraging Rust's type system to allow for typestated objects.
+In short, I propose a DSL built with procedural macros which takes advantage of Rust's generics and affine type system capabilities.
+
+\subsection*{The Typestate Pattern}
+
+As of now, it is possible for a developer to make use of typestates in Rust,
+the key idea is to write functions which consume the current object and return a new object,
+the function signature should be similar to \mintinline{rust}{fn transition(self: OldState, args...) -> NewState}.
+
+Each state can then carry information regarding the current computation, or not, and simply be a 0-sized structure.
+States can be grouped into sets using traits,
+these sets can be further restricted using the sealed trait pattern\footnote{\url{https://rust-lang.github.io/api-guidelines/future-proofing.html\#sealed-traits-protect-against-downstream-implementations-c-sealed}}.
+An example implementation of the typestate pattern is available in \url{https://github.com/rustype/http-parser}.
+
+% \begin{minted}{rust}
+% trait StateTrait {}
+% struct T<State: StateTrait> {
+%     state: State
+% }
+% struct S1;
+% impl StateTrait for S1 {}
+% impl T<S1> {
+%     fn transition(self) -> T<S2> {...}
+% }
+% struct S2;
+% impl StateTrait for S2 {}
+% impl T<S2> {
+%     fn transition(self) -> Result<T<S2>> {...}
+% }
+% \end{minted}
+
+\subsection*{Proposal}
+
+The code necessary to implement the typestate pattern requires a lot of boilerplate,
+furthermore, we want to be able to prove typestate properties (e.g. that all states are productive).
+The former challenge can be solved through the use of macros,
+and the latter is not novel in the literature,
+to address it we just need to extract the state machine from the code and apply existing algorithms.
+
+However, to do so without writing a static checker from the ground up we are required to use Rust's procedural function-like macros, these enable the creation of a DSL for typestates, thus solving both the boilerplate problem and the requirement for the ability to prove certain properties.
+
+Currently, a prototype is under development, the development of such prototype falls under the scope of my MSc thesis, which is centered around the topic of typestates and Rust.
+The prototype can be found in \url{https://github.com/rustype/typestate-rs}.
+
+\begin{minted}{rust}
+    typestate! {
+        struct Drone {x: f32, y: f32}
+        fn ping_coords(&self) -> (f32, f32);
+        state Idle [last_landing: Time] {
+            transition take_off(self) -> Hovering;
+        }
+        state Hovering {
+            fn take_picture(&self, dst: &str);
+            transition land(self) -> Idle;
+        }
+    }
+\end{minted}
 
 \end{document}

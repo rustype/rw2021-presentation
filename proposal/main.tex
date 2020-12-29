@@ -1,0 +1,77 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage[a4paper]{geometry}
+\geometry{
+    top=20mm,
+    left=25mm,
+    right=25mm,
+    bottom=20mm
+}
+
+\usepackage{fontspec}
+\setmonofont[Contextuals={Alternate}]{Jetbrains Mono}[Scale=MatchLowercase]
+\usepackage{minted}
+\setminted{
+    linenos,
+    frame=single
+}
+
+\title{Rust \& Typestates}
+\author{José Duarte}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+% \begin{abstract}
+%     Typestates are a mechanism that enables developers to write stricter and less error-prone APIs,
+%     their main characteristic is the leverage of the type system to aid in managing state.
+%     Before its 1.0 release, Rust had typestates in the language.
+%     The feature was removed due to ""
+% \end{abstract}
+
+\section*{Introduction}
+
+\subsection*{What are typestates?}
+
+In a nutshell, typestates can be thought of a way to constrain APIs as the program state evolves.
+More formally, typestates belong to the behavioral types category and are built on the idea of lifting state to the type level,
+since state becomes part of the type system, the compiler will be able to reason about state,
+effectively helping the developer track state and validate certain assumptions.
+
+\subsection*{Why are typestates useful?}
+
+Diving deeper on why do typestates help the developer, I provide a simple yet classic example.
+Consider a stream, whether it be a file or a socket, to be read, the stream must first be open,
+only then can it be read and finally it must be closed.
+
+\begin{minted}{java}
+Scanner s = new Scanner(System.in); // open the stream
+s.nextLine();                       // read
+s.close();                          // close the stream
+s.nextLine();                       // IllegalStateException
+\end{minted}
+
+In the example above the developer tries to read a line after closing the stream,
+this yields a \texttt{IllegalStateException} since you cannot read from a closed source.
+
+The fact that this code compiles without warnings (even when \texttt{-Xlint:all} is used) is problematic,
+since the error can only be caught at runtime.
+While the presented example is simple,
+code running in production is not,
+and code paths that raise runtime errors may be untested until it reaches the hands of the user.
+
+Using typestates solves the above problem by establishing a distinction between the open and closed \texttt{Scanner},
+consider the following example:
+
+\begin{minted}{java}
+Scanner[Open] s = new Scanner(System.in);   // open the stream
+s.nextLine();                               // read
+Scanner[Closed] s = s.close();              // close the stream
+s.nextLine();                               // compile-time error
+\end{minted}
+
+The compiler is now able to provide the developer with an error at compile-time since it now knows that the \texttt{Scanner} is closed and thus,
+it does not have a function \texttt{nextLine}.
+
+\end{document}

@@ -20,7 +20,7 @@
 \usepackage{hyperref}
 
 \title{Rust \& Typestates}
-\author{José Duarte}
+\author{José Duarte \& António Ravara}
 \date{\today}
 
 \begin{document}
@@ -35,14 +35,14 @@
 
 \section*{Introduction}
 
-\subsection*{What are typestates?}
+\paragraph{What are typestates?}
 
 In a nutshell, typestates can be thought of a way to constrain APIs as the program state evolves.
 More formally, typestates belong to the behavioral types category and are built on the idea of lifting state to the type level,
 since state becomes part of the type system, the compiler will be able to reason about state,
 effectively helping the developer track state and validate certain assumptions.
 
-\subsection*{Why are typestates useful?}
+\paragraph{Why are typestates useful?}
 
 Diving deeper on why do typestates help the developer, I provide a simple yet classic example.
 Consider a stream, whether it be a file or a socket, to be read, the stream must first be open,
@@ -77,7 +77,7 @@ s.nextLine();                               // compile-time error
 The compiler is now able to provide the developer with an error at compile-time since it now knows that the \texttt{Scanner} is closed and thus,
 it does not have a function \texttt{nextLine}.
 
-\subsection*{Why Rust?}
+\paragraph{Why Rust?}
 
 One of Rust's core values is safety,
 such value manifests itself in the form of memory safety,
@@ -112,7 +112,7 @@ Rust previously had a typestate system which was removed in version 0.4 since it
 The idea I propose does is not aimed at bringing back the old typestate system but rather at leveraging Rust's type system to allow for typestated objects.
 In short, I propose a DSL built with procedural macros which takes advantage of Rust's generics and affine type system capabilities.
 
-\subsection*{The Typestate Pattern}
+\paragraph{The Typestate Pattern}
 
 As of now, it is possible for a developer to make use of typestates in Rust,
 the key idea is to write functions which consume the current object and return a new object,
@@ -140,7 +140,7 @@ An example implementation of the typestate pattern is available in \url{https://
 % }
 % \end{minted}
 
-\subsection*{Proposal}
+\paragraph{Proposal}
 
 The code necessary to implement the typestate pattern requires a lot of boilerplate,
 furthermore, we want to be able to prove typestate properties (e.g. that all states are productive).

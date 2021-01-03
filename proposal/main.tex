@@ -84,7 +84,15 @@ which in turn has proven to be \emph{a less than good idea}\footnote{\url{https:
 To address such problem, several tools and languages have been and continue to be developed,
 Rust has been the only one to \emph{go mainstream}.
 Rust aims to provide memory safety without affecting performance,
-to achieve such ambitious goal, code is not only typechecked
+to achieve such ambitious goal, Rust validates code with the borrow checker, which enforces memory safety rules.
+
+While Rust addresses memory safety, not all bugs are memory-related,
+when implementing a protocol, the developer has its specification at hand, yet, bugs still arise due to human error,
+ideally we ought to have mechanisms that validate our code against some kind of specification.
+Typestates enable the programmer to track the state of an object throughout its lifetime with help of the type system,
+while Rust has no direct support for typestates,
+its type system is powerful enough to allow them to be implemented within it,
+effectively mixing the line between specification and implementation by baking the possible state transitions in the type system.
 
 \paragraph{What are typestates?}
 
@@ -164,6 +172,9 @@ let y = x;
 println!("{}", x); // error, value moved in line 2
 \end{minted}
 
+Such type system allows us to emulate typestates by forcing moves whenever a state transition is required to happen,
+this way, the previous state is "\emph{destroyed}" and cannot be mutated, risking the typestate guarantees.
+
 \section*{Typestating Rust}
 
 Rust previously had a typestate system which was removed in version 0.4 since it "did not pull its own weight".
@@ -212,17 +223,17 @@ Currently, a prototype is under development, the development of such prototype f
 The prototype can be found in \url{https://github.com/rustype/typestate-rs}.
 
 \begin{minted}{rust}
-    typestate! {
-        struct Drone {x: f32, y: f32}
-        fn ping_coords(&self) -> (f32, f32);
-        state Idle [last_landing: Time] {
-            transition take_off(self) -> Hovering;
-        }
-        state Hovering {
-            fn take_picture(&self, dst: &str);
-            transition land(self) -> Idle;
-        }
+typestate! {
+    struct Drone {x: f32, y: f32}
+    fn ping_coords(&self) -> (f32, f32);
+    state Idle [last_landing: Time] {
+        transition take_off(self) -> Hovering;
     }
+    state Hovering {
+        fn take_picture(&self, dst: &str);
+        transition land(self) -> Idle;
+    }
+}
 \end{minted}
 
 \end{document}

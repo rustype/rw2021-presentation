@@ -35,6 +35,31 @@
 
 \section*{Introduction}
 
+% [3/1/2021]
+% TODO:
+% 1 - Systems programming is demanding and failure is harmful
+% when a system's program goes wrong, systems crash
+% 2 - Rust goals and assurances
+% 3 - Problem: many programs/protocols are state dependent
+% usual type systems do not take that into account
+%
+% NOTE:
+% unsure if the rust notes are necessary,
+% the talk is supposed to be submitted at a Rust workshop
+% it feels like preaching to the choir
+
+Systems programming is one of the most demanding domains of computer science where
+bugs and their respective consequences are costly to both service providers and consumers.
+Languages like C/C++ have dominated the systems programming landscape for years and
+one of the main problems of both is the lack of memory management,
+leaving such responsibility to the developer,
+which in turn has proven to be \emph{a less than good idea}\footnote{\url{https://git.io/JLdDc}}\footnote{\url{https://www.chromium.org/Home/chromium-security/memory-safety}}.
+
+To address such problem, several tools and languages have been and continue to be developed,
+Rust has been the only one to \emph{go mainstream}.
+Rust aims to provide memory safety without affecting performance,
+to achieve such ambitious goal, code is not only typechecked
+
 \paragraph{What are typestates?}
 
 In a nutshell, typestates can be thought of a way to constrain APIs as the program state evolves.
@@ -79,6 +104,8 @@ it does not have a function \texttt{nextLine}.
 
 \paragraph{Why Rust?}
 
+% TODO move this up
+
 One of Rust's core values is safety,
 such value manifests itself in the form of memory safety,
 and the provision of tools to prevent concurrency problems.
@@ -99,6 +126,8 @@ all other clients may crash since they may try to read from a stream which is no
 
 While Rust cannot enforce a truly linear typesystem (in which objects must be used \emph{exactly once}),
 it is able to enforce an affine type system (or \emph{at most once} usage), as demonstrated bellow.
+
+% TODO add advantages
 
 \begin{minted}{rust}
 let x = 0

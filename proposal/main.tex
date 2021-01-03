@@ -61,17 +61,18 @@
 \section*{Introduction}
 
 % [3/1/2021]
-% TODO:
+% TODO [Required topics]
 % 1 - Systems programming is demanding and failure is harmful
 % when a system's program goes wrong, systems crash
 % 2 - Rust goals and assurances
 % 3 - Problem: many programs/protocols are state dependent
 % usual type systems do not take that into account
 %
-% NOTE:
+% NOTE [Relevance of the topics]
 % unsure if the rust notes are necessary,
 % the talk is supposed to be submitted at a Rust workshop
 % it feels like preaching to the choir
+% TODO [Review wording]
 
 Systems programming is one of the most demanding domains of computer science where
 bugs and their respective consequences are costly to both service providers and consumers.
@@ -129,7 +130,9 @@ it does not have a function \texttt{nextLine}.
 
 \paragraph{Why Rust?}
 
-% TODO move this up
+% [3/1/2021]
+% TODO [Move this paragraph up]
+% NOTE [Is this actually necessary or could it be achieved in another way?]
 
 One of Rust's core values is safety,
 such value manifests itself in the form of memory safety,
@@ -152,7 +155,8 @@ all other clients may crash since they may try to read from a stream which is no
 While Rust cannot enforce a truly linear typesystem (in which objects must be used \emph{exactly once}),
 it is able to enforce an affine type system (or \emph{at most once} usage), as demonstrated bellow.
 
-% TODO add advantages
+% [3/1/2021]
+% TODO [Add advantages to the linear//affine type system]
 
 \begin{minted}{rust}
 let x = 0

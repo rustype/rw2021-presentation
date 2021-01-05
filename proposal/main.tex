@@ -22,7 +22,7 @@
 \usepackage{titling}
 
 \pretitle{%
-    \vskip -3em
+    \vskip -3.5em
     \noindent\Large\bfseries
 }
 \posttitle{%
@@ -79,62 +79,12 @@ bugs and their respective consequences are costly to both service providers and 
 Languages like C/C++ have dominated the systems programming landscape for years and
 one of the main problems of both is the lack of memory management,
 leaving such responsibility to the developer,
-which in turn has proven to be \emph{a less than good idea}\footnote{\url{https://git.io/JLdDc}}\footnote{\url{https://www.chromium.org/Home/chromium-security/memory-safety}}.
+which in turn has proven to be \emph{a less than ideal} solution\footnote{\url{https://git.io/JLdDc}}\footnote{\url{https://www.chromium.org/Home/chromium-security/memory-safety}}.
 
 To address such problem, several tools and languages have been and continue to be developed,
-Rust has been the only one to \emph{go mainstream}.
-Rust aims to provide memory safety without affecting performance,
-to achieve such ambitious goal, Rust validates code with the borrow checker, which enforces memory safety rules.
-
-While Rust addresses memory safety, not all bugs are memory-related,
-when implementing a protocol, the developer has its specification at hand, yet, bugs still arise due to human error,
-ideally we ought to have mechanisms that validate our code against some kind of specification.
-Typestates enable the programmer to track the state of an object throughout its lifetime with help of the type system,
-while Rust has no direct support for typestates,
-its type system is powerful enough to allow them to be implemented within it,
-effectively mixing the line between specification and implementation by baking the possible state transitions in the type system.
-
-\paragraph{What are typestates?}
-
-In a nutshell, typestates can be thought of a way to constrain APIs as the program state evolves.
-More formally, typestates belong to the behavioral types category and are built on the idea of lifting state to the type level,
-since state becomes part of the type system, the compiler will be able to reason about state,
-effectively helping the developer track state and validate certain assumptions.
-
-\paragraph{Why are typestates useful?}
-
-Diving deeper on why do typestates help the developer, I provide a simple yet classic example.
-Consider a stream, whether it be a file or a socket, to be read, the stream must first be open,
-only then can it be read and finally it must be closed.
-
-\begin{minted}{java}
-Scanner s = new Scanner(System.in); // open the stream
-s.nextLine();                       // read
-s.close();                          // close the stream
-s.nextLine();                       // IllegalStateException
-\end{minted}
-
-In the example above the developer tries to read a line after closing the stream,
-this yields a \texttt{IllegalStateException} since you cannot read from a closed source.
-
-The fact that this code compiles without warnings (even when \texttt{-Xlint:all} is used) is problematic,
-since the error can only be caught at runtime.
-While the presented example is simple,
-code running in production is not,
-and code paths that raise runtime errors may be untested until it reaches the hands of the user.
-
-Using typestates solves the above problem by establishing a distinction between the open and closed \texttt{Scanner},
-consider the following example:
-
-\begin{minted}{java}
-Scanner[Open] s = new Scanner(System.in);   // open the stream
-s.nextLine();                               // read
-Scanner[Closed] s = s.close();              // close the stream
-s.nextLine();                               // compile-time error
-\end{minted}
-
-The compiler is now able to provide the developer with an error at compile-time since it now knows that the \texttt{Scanner} is closed and thus,
-it does not have a function \texttt{nextLine}.
+so far, Rust has been the only one to \emph{go mainstream}.
+Rust aims to provide memory safety without affecting performance or productivity,
+to achieve such ambitious goal, Rust validates code with the borrow checker, which then enforces memory safety rules.
 
 \paragraph{Why Rust?}
 
@@ -148,6 +98,56 @@ and the provision of tools to prevent concurrency problems.
 The mindset is also imbued in the community,
 an example would be Sealed Rust\footnote{\url{https://ferrous-systems.com/blog/sealed-rust-the-plan/}},
 an effort to bring Rust to the safety critical domain.
+
+While Rust addresses memory safety, not all bugs are memory-related,
+when implementing a protocol, the developer has its specification at hand, yet, bugs still arise due to human error,
+ideally we ought to have mechanisms that validate our code against some kind of specification.
+Typestates enable the programmer to track the state of an object throughout its lifetime with help of the type system
+and while Rust has no direct support for typestates,
+its type system is powerful enough to allow them to be implemented within it,
+effectively blurring the line between specification and implementation by baking the possible state transitions in the type system.
+
+\paragraph{What are typestates?}
+
+In a nutshell, typestates can be thought of a way to constrain APIs as the program state evolves.
+More formally, typestates belong to the behavioral types category and are built on the idea of lifting state to the type level,
+since state becomes part of the type system, the compiler will be able to reason about state,
+effectively helping the developer track state and validate certain assumptions.
+
+\paragraph{How are typestates useful?}
+
+Diving deeper on how do typestates help the developer, I provide a simple yet classic example.
+Consider a stream, whether it be a file or a socket, to be read, the stream must first be open,
+only then can it be read and finally it must be closed.
+
+\begin{minted}{java}
+Scanner s = new Scanner(System.in); // open the stream
+s.nextLine();                       // read
+s.close();                          // close the stream
+s.nextLine();                       // IllegalStateException
+\end{minted}
+
+In the example above the developer tries to read a line after closing the stream,
+when ran, the example yields a \texttt{IllegalStateException} since you cannot read from a closed source.
+
+The fact that this code compiles without warnings (even when \texttt{-Xlint:all} is used) is problematic,
+since the error can only be caught at runtime.
+While the presented example is simple, production-code is not,
+and code paths that raise runtime errors may be untested until it reaches the hands of the user.
+
+Using typestates solves the above problem by establishing a distinction between the open and closed \texttt{Scanner},
+consider the following example:
+
+\begin{minted}{java}
+Scanner[Open] s = new Scanner(System.in);   // open the stream
+s.nextLine();                               // read
+Scanner[Closed] s = s.close();              // close the stream
+s.nextLine();                               // compile-time error
+\end{minted}
+
+The compiler is now able to provide the developer with an error at compile-time
+since it now knows that the \texttt{Scanner} is closed and thus,
+it does not have a function \texttt{nextLine}.
 
 \paragraph{Alias Control}
 
@@ -173,7 +173,7 @@ println!("{}", x); // error, value moved in line 2
 \end{minted}
 
 Such type system allows us to emulate typestates by forcing moves whenever a state transition is required to happen,
-this way, the previous state is "\emph{destroyed}" and cannot be mutated, risking the typestate guarantees.
+this way, the previous state is “\emph{destroyed}” and cannot be mutated, risking the typestate guarantees.
 
 \section*{Typestating Rust}
 
@@ -187,9 +187,9 @@ As of now, it is possible for a developer to make use of typestates in Rust,
 the key idea is to write functions which consume the current object and return a new object,
 the function signature should be similar to \mintinline{rust}{fn transition(self: OldState, args...) -> NewState}.
 
-Each state can then carry information regarding the current computation, or not, and simply be a 0-sized structure.
+Each state can then carry information, or not, being a simple 0-sized structure.
 States can be grouped into sets using traits,
-these sets can be further restricted using the sealed trait pattern\footnote{\url{https://rust-lang.github.io/api-guidelines/future-proofing.html\#sealed-traits-protect-against-downstream-implementations-c-sealed}}.
+these sets can be further restricted using the sealed trait pattern\footnote{\url{https://git.io/JLbry}}.
 An example implementation of the typestate pattern is available in \url{https://github.com/rustype/http-parser}.
 
 % \begin{minted}{rust}
@@ -217,10 +217,11 @@ The former challenge can be solved through the use of macros,
 and the latter is not novel in the literature,
 to address it we just need to extract the state machine from the code and apply existing algorithms.
 
-However, to do so without writing a static checker from the ground up we are required to use Rust's procedural function-like macros, these enable the creation of a DSL for typestates, thus solving both the boilerplate problem and the requirement for the ability to prove certain properties.
+However, to do so without writing a static checker from the ground up we are required to use Rust's procedural function-like macros,
+these enable the creation of a DSL for typestates,
+thus solving both the boilerplate problem and the requirement for the ability to prove certain properties.
 
-Currently, a prototype is under development, the development of such prototype falls under the scope of my MSc thesis, which is centered around the topic of typestates and Rust.
-The prototype can be found in \url{https://github.com/rustype/typestate-rs}.
+Currently, a prototype is under development and can be found in \url{https://github.com/rustype/typestate-rs}.
 
 \begin{minted}{rust}
 typestate! {

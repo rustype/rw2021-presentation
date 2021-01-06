@@ -3,8 +3,8 @@
 \usepackage[a4paper]{geometry}
 \geometry{
     top=20mm,
-    left=25mm,
-    right=25mm,
+    left=24mm,
+    right=24mm,
     bottom=25mm
 }
 
@@ -45,7 +45,7 @@
 
 
 \pretitle{%
-    \vskip -3.5em
+    \vskip -3.5em%
     \noindent\Large\bfseries%
 }
 \posttitle{%
@@ -70,8 +70,9 @@
     NOVA School of Science \& Technology, Portugal%
 }
 
-
-
+\usepackage[explicit]{titlesec}
+\titlespacing{\subsection}{0em}{0.5em}{0em}
+\titlespacing{\paragraph}{0em}{0.5em}{0.5em}[]
 
 \title{Rust \& Typestates}
 \author{José Duarte \& António Ravara}
@@ -86,8 +87,7 @@
 %     Before its 1.0 release, Rust had typestates in the language.
 %     The feature was removed due to ""
 % \end{abstract}
-
-\section*{Introduction}
+\subsection*{Introduction}
 
 % [3/1/2021]
 % TODO [Required topics]
@@ -108,10 +108,11 @@ bugs and their respective consequences are costly to both service providers and 
 Languages like C/C++ have dominated the systems programming landscape for years and
 one of the main problems of both is the lack of memory management,
 leaving such responsibility to the developer,
-which in turn has proven to be \emph{a less than ideal} solution\footnote{\url{https://git.io/JLdDc}}\footnote{\url{https://www.chromium.org/Home/chromium-security/memory-safety}}.
+which in turn has proven to be \emph{a less than ideal}
+solution~\footnote{\url{https://git.io/JLdDc}} \footnote{\url{https://www.chromium.org/Home/chromium-security/memory-safety}}.
 
 To address such problem, several tools and languages have been and continue to be developed,
-so far, Rust has been the only one to \emph{go mainstream}.
+so far, Rust has been the only one to achieve \emph{mainstream} status.
 Rust aims to provide memory safety without affecting performance or productivity,
 to achieve such ambitious goal, Rust validates code with the borrow checker, which then enforces memory safety rules.
 
@@ -127,6 +128,9 @@ an effort to bring Rust to the safety critical domain.
 While Rust addresses memory safety, not all bugs are memory-related,
 when implementing a protocol, the developer has its specification at hand, yet, bugs still arise due to human error,
 ideally we ought to have mechanisms that validate our code against some kind of specification.
+Automata is a powerful tool to materialize the relationships between states and operations,
+as shown by \autoref{fig:file-automata}.
+% TODO insert automata scheme
 Typestates enable the programmer to track the state of an object throughout its lifetime with help of the type system
 and while Rust has no direct support for typestates,
 its type system is powerful enough to allow them to be implemented within it,
@@ -200,7 +204,7 @@ println!("{}", x); // error, value moved in line 2
 Such type system allows us to emulate typestates by forcing moves whenever a state transition is required to happen,
 this way, the previous state is “\emph{destroyed}” and cannot be mutated, risking the typestate guarantees.
 
-\section*{Typestating Rust}
+\subsection*{Typestating Rust}
 
 Rust previously had a typestate system which was removed in version 0.4 since it "did not pull its own weight".
 The idea I propose does is not aimed at bringing back the old typestate system but rather at leveraging Rust's type system to allow for typestated objects.
@@ -236,6 +240,9 @@ An example implementation of the typestate pattern is available in \url{https://
 
 \paragraph{Proposal}
 
+% TODO add related work
+% TODO explain why this idea is better
+
 The code necessary to implement the typestate pattern requires a lot of boilerplate,
 furthermore, we want to be able to prove typestate properties (e.g. that all states are productive).
 The former challenge can be solved through the use of macros,
@@ -248,18 +255,18 @@ thus solving both the boilerplate problem and the requirement for the ability to
 
 Currently, a prototype is under development and can be found in \url{https://github.com/rustype/typestate-rs}.
 
-\begin{minted}{rust}
-typestate! {
-    struct Drone {x: f32, y: f32}
-    fn ping_coords(&self) -> (f32, f32);
-    state Idle [last_landing: Time] {
-        transition take_off(self) -> Hovering;
-    }
-    state Hovering {
-        fn take_picture(&self, dst: &str);
-        transition land(self) -> Idle;
-    }
-}
-\end{minted}
+% \begin{minted}{rust}
+% typestate! {
+%     struct Drone {x: f32, y: f32}
+%     fn ping_coords(&self) -> (f32, f32);
+%     state Idle [last_landing: Time] {
+%         transition take_off(self) -> Hovering;
+%     }
+%     state Hovering {
+%         fn take_picture(&self, dst: &str);
+%         transition land(self) -> Idle;
+%     }
+% }
+% \end{minted}
 
 \end{document}

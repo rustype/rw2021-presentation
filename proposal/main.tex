@@ -26,19 +26,29 @@
 
 \usepackage{titling}
 
+\makeatletter
+\def\@maketitle{%
+    \newpage
+    \null
+    \vskip 2em%
+    \vspace*{\droptitle}
+    \maketitlehooka
+    {\@bspretitle \@title \@bsposttitle}
+    \maketitlehookb
+    {\@bspredate \@date \@bspostdate}
+    \maketitlehookc
+    {\@bspreauthor \@author \@bspostauthor}
+    \maketitlehookd
+    \par
+    \vskip 1.5em}
+\makeatother
+
+
 \pretitle{%
     \vskip -3.5em
-    \noindent\Large\bfseries
+    \noindent\Large\bfseries%
 }
 \posttitle{%
-    \par\noindent\rule{\textwidth}{0.5pt}%
-}
-
-\preauthor{%
-    \par\noindent\large\itshape
-}
-\postauthor{%
-    % \par\noindent\rule{\textwidth}{0.5pt}%
 }
 
 \predate{%
@@ -46,6 +56,20 @@
 }
 \postdate{%
 }
+
+\renewcommand\maketitlehookc{%
+    \vskip -0.55em%
+    \par\noindent\rule{\textwidth}{0.5pt}%
+}
+
+\preauthor{%
+    \par\noindent\large\itshape%
+}
+\postauthor{%
+    \hfill\normalsize\normalfont\noindent%
+    NOVA School of Science \& Technology, Portugal%
+}
+
 
 
 
@@ -92,10 +116,6 @@ Rust aims to provide memory safety without affecting performance or productivity
 to achieve such ambitious goal, Rust validates code with the borrow checker, which then enforces memory safety rules.
 
 \paragraph{Why Rust?}
-
-% [3/1/2021]
-% TODO [Move this paragraph up]
-% NOTE [Is this actually necessary or could it be achieved in another way?]
 
 One of Rust's core values is safety,
 such value manifests itself in the form of memory safety,

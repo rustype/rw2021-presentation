@@ -1,4 +1,4 @@
-\documentclass{article}
+\documentclass[a4paper, 10pt]{article}
 \usepackage[utf8]{inputenc}
 \usepackage[a4paper]{geometry}
 \geometry{
@@ -7,31 +7,26 @@
     right=20mm,
     bottom=25mm
 }
-
-\usepackage[bottom]{footmisc}
-
+\usepackage{fontspec}
+\setmonofont[Contextuals={Alternate}]{Jetbrains Mono}[Scale=MatchLowercase]
+\usepackage[bottom, multiple]{footmisc}
 \usepackage[dvipsnames,svgnames,x11names,hyperref]{xcolor}
-
 \usepackage{hyperref}
 \hypersetup{
     colorlinks=true,
     linkcolor=RoyalBlue,
     urlcolor=RoyalBlue,
 }
-
 \usepackage{pgf}
 \usepackage{tikz}
-\usetikzlibrary{arrows,automata}
-
-\usepackage{fontspec}
-\setmonofont[Contextuals={Alternate}]{Jetbrains Mono}[Scale=MatchLowercase]
-
-\usepackage{minted}
+\usepackage[newfloat]{minted}
 \setminted{
     linenos,
     frame=single
 }
-
+\usepackage{caption}
+\newenvironment{code}{\captionsetup{type=listing}}{}
+\SetupFloatingEnvironment{listing}{name=Snippet}
 \usepackage{titling}
 \makeatletter
 \def\@maketitle{%
@@ -80,11 +75,10 @@
 \titlespacing{\subsection}{0em}{0.5em}{0em}
 \titlespacing{\paragraph}{0em}{0.5em}{0.5em}[]
 
+
 \title{Rust \& Typestates}
 \date{\today}
 \author{José Duarte \& António Ravara}
-
-
 \begin{document}
 \maketitle
 % \setcounter{figure}{0}
@@ -112,13 +106,12 @@
 % it feels like preaching to the choir
 % TODO [Review wording]
 
-Systems programming is one of the most demanding domains of computer science where
-bugs and their respective consequences are costly to both service providers and consumers.
+Systems programming is one of the most demanding domains in computer science where
+bugs and their respective consequences come at a high cost to both service providers and consumers.
 Languages like C/C++ have dominated the systems programming landscape for years and
-one of the main problems of both is the lack of memory management,
-leaving such responsibility to the developer,
-which in turn has proven to be \emph{a less than ideal}
-solution~\footnote{\url{https://git.io/JLdDc}} \footnote{\url{https://www.chromium.org/Home/chromium-security/memory-safety}}.
+one of the main problems with both is the lack of memory management.
+Leaving such responsibility to the developer has proven to be \emph{a less than ideal}
+solution\footnote{\url{https://git.io/JLdDc}}\textsuperscript{,}\footnote{\url{https://www.chromium.org/Home/chromium-security/memory-safety}}.
 
 To address such problem, several tools and languages have been and continue to be developed,
 so far, Rust has been the only one to achieve \emph{mainstream} status.
@@ -128,9 +121,9 @@ to achieve such ambitious goal, Rust validates code with the borrow checker, whi
 \paragraph{Why Rust?}
 
 One of Rust's core values is safety,
-such value manifests itself in the form of memory safety,
+manifesting itself in the form of memory safety,
 and the provision of tools to prevent concurrency problems.
-The mindset is also imbued in the community,
+The \emph{safe} mindset is also imbued in the community,
 an example would be Sealed Rust\footnote{\url{https://ferrous-systems.com/blog/sealed-rust-the-plan/}},
 an effort to bring Rust to the safety critical domain.
 
@@ -151,48 +144,55 @@ effectively blurring the line between specification and implementation by baking
 
 In a nutshell, typestates can be thought of a way to constrain APIs as the program state evolves.
 More formally, typestates belong to the behavioral types category and are built on the idea of lifting state to the type level,
-since state becomes part of the type system, the compiler will be able to reason about state,
+since state becomes part of the type system, the compiler should able to reason about state,
 effectively helping the developer track state and validate certain assumptions.
 
 \paragraph{How are typestates useful?}
 
-Diving deeper on how do typestates help the developer, I provide a simple yet classic example.
-Consider a stream, whether it be a file or a socket, to be read, the stream must first be open,
-only then can it be read and finally it must be closed.
+Diving deeper on how do typestates help the developer, we provide a simple yet classic example.
+Consider a stream, whether it be a file or a socket, to be read, the stream must first be open before being read and finally closed.
 
-\begin{minted}{java}
+\begin{code}
+    \caption{\texttt{Scanner} misuse example.}
+    \label{lst:scanner-misuse}
+    \begin{minted}{java}
 Scanner s = new Scanner(System.in); // open the stream
 s.nextLine();                       // read
 s.close();                          // close the stream
 s.nextLine();                       // IllegalStateException
-\end{minted}
+    \end{minted}
+\end{code}
 
-In the example above the developer tries to read a line after closing the stream,
-when ran, the example yields a \texttt{IllegalStateException} since you cannot read from a closed source.
+In \autoref{lst:scanner-misuse} the developer tries to read a line after closing the stream,
+when ran, \autoref{lst:scanner-misuse} yields a \texttt{IllegalStateException} since you cannot read from a closed stream.
 
 The fact that this code compiles without warnings (even when \texttt{-Xlint:all} is used) is problematic,
 since the error can only be caught at runtime.
 While the presented example is simple, production-code is not,
-and code paths that raise runtime errors may be untested until it reaches the hands of the user.
+and code paths that raise runtime errors may be untested until it reaches the hands of the user\footnote{\url{https://github.com/redis/jedis/issues/1747}}.
 
 Using typestates solves the above problem by establishing a distinction between the open and closed \texttt{Scanner},
-consider the following example:
+consider the code in \autoref{lst:typestated-scanner-usage}.
 
-\begin{minted}{java}
+\begin{code}
+    \caption{Typestated \texttt{Scanner} usage example.}
+    \label{lst:typestated-scanner-usage}
+    \begin{minted}{java}
 Scanner[Open] s = new Scanner(System.in);   // open the stream
 s.nextLine();                               // read
 Scanner[Closed] s = s.close();              // close the stream
 s.nextLine();                               // compile-time error
-\end{minted}
+    \end{minted}
+\end{code}
 
 The compiler is now able to provide the developer with an error at compile-time
 since it now knows that the \texttt{Scanner} is closed and thus,
 it does not have a function \texttt{nextLine}.
 
-\paragraph{Alias Control}
+\paragraph{Aliasing Control}
 
 Besides the pro-safety mentality of Rust,
-another key detail which makes Rust a solid candidate for typestates is its alias control.
+another key detail which makes Rust a solid candidate for typestates is its aliasing control.
 
 By definition, typestates are incompatible with aliasing,
 this is due to the fact that if an object is being used by $N$ clients,
@@ -200,25 +200,29 @@ when a client mutates an object, all other clients guarantees are broken.
 Back to the stream example, if a client closes the stream,
 all other clients may crash since they may try to read from a stream which is now closed.
 
-While Rust cannot enforce a truly linear typesystem (in which objects must be used \emph{exactly once}),
-it is able to enforce an affine type system (or \emph{at most once} usage), as demonstrated bellow.
+While Rust is unable to enforce a truly linear type system (in which objects must be used \emph{exactly once}),
+it is able to enforce an affine type system (or \emph{at most once} usage), as demonstrated in \autoref{lst:rust-move-semantics}.
 
 % [3/1/2021]
 % TODO [Add advantages to the linear//affine type system]
 
-\begin{minted}{rust}
+\begin{code}
+    \caption{Rust move sematics example.}
+    \label{lst:rust-move-semantics}
+    \begin{minted}{rust}
 let x = 0
 let y = x;
 println!("{}", x); // error, value moved in line 2
-\end{minted}
+    \end{minted}
+\end{code}
 
-Such type system allows us to emulate typestates by forcing moves whenever a state transition is required to happen,
-this way, the previous state is “\emph{destroyed}” and cannot be mutated, risking the typestate guarantees.
+Such type system allows us to emulate typestates by \emph{forcing a move} whenever a state transition is required to happen,
+this way, the previous state is “\emph{destroyed}” and cannot be mutated.
 
 \subsection*{Typestating Rust}
 
-Rust previously had a typestate system which was removed in version 0.4 since it “did not pull its own weight".
-The idea I propose does is not aimed at bringing back the old typestate system but rather at leveraging Rust's type system to allow for typestated objects.
+Rust previously had a typestate system which was removed in version 0.4 since it “did not pull its own weight”.
+The idea I propose is not aimed at bringing back the old typestate system but rather at leveraging Rust's type system to allow for typestated structures.
 In short, I propose a DSL built with procedural macros which takes advantage of Rust's generics and affine type system capabilities.
 
 \paragraph{The Typestate Pattern}
@@ -251,9 +255,6 @@ An example implementation of the typestate pattern is available in \url{https://
 
 \paragraph{Proposal}
 
-% TODO add related work
-% TODO explain why this idea is better
-
 The code necessary to implement the typestate pattern requires a lot of boilerplate,
 furthermore, we want to be able to prove typestate properties (e.g. that all states are productive).
 The former challenge can be solved through the use of macros,
@@ -268,7 +269,7 @@ Existing work on the Rust ecosystem regarding typestate-like mechanisms is limit
 we've reviewed several automata crates and only one provided strong compile-time guarantees,
 such crate was the \texttt{state\_machine\_future} crate, the crate, however, requires a runtime such as Tokio, due to being centered around asynchronous computations.
 
-Our approach aims to extend the \texttt{state\_machine\_future} capabilities with an expressive DSL and
+Our approach aims to extend the ideas behind \texttt{state\_machine\_future} with an expressive DSL and
 the possibility to be used without a runtime.
 Currently, a prototype is under development and can be found in \url{https://github.com/rustype/typestate-rs}.
 

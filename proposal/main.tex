@@ -91,7 +91,6 @@
 % \end{abstract}
 % \phantomsection
 \subsection*{Introduction}
-
 Systems programming is one of the most demanding domains in computer science where
 bugs and their respective consequences come at a high cost to both service providers and consumers.
 Languages like C/C++ have dominated the systems programming landscape for years and
@@ -105,7 +104,6 @@ Rust aims to provide memory safety without affecting performance or productivity
 to achieve such ambitious goal, Rust validates code with the borrow checker, which then enforces memory safety rules.
 
 \paragraph{Why Rust?}
-
 One of Rust's core values is safety,
 manifesting itself in the form of memory safety,
 and the provision of tools to prevent concurrency problems.
@@ -113,10 +111,9 @@ The \emph{safe} mindset is also imbued in the community,
 an example would be Sealed Rust\footnote{\url{https://ferrous-systems.com/blog/sealed-rust-the-plan/}},
 an effort to bring Rust to the safety critical domain.
 
-While Rust addresses memory safety, not all bugs are memory-related,
-when implementing a protocol, the developer has its specification at hand, yet, bugs still arise due to human error,
-ideally we ought to have mechanisms that validate our code against some kind of specification.
-Automata is a powerful tool to materialize the relationships between states and operations,
+While Rust addresses memory safety, not all bugs are memory-related.
+Consider a programmer implementing a protocol, even with the specification's aid the resulting implementation may contain bugs due to human error.
+Since we can express typestates as state machines, we can then leverage the latter to materialize the relationships between states and operations,
 as shown by \autoref{fig:file-automata}.
 
 Typestates enable the programmer to track the state of an object throughout its lifetime with help of the type system
@@ -127,14 +124,13 @@ effectively blurring the line between specification and implementation by baking
 \input{file-automata}
 
 \paragraph{What are typestates?}
-
-In a nutshell, typestates can be thought of a way to constrain APIs as the program state evolves.
-More formally, typestates belong to the behavioral types category and are built on the idea of lifting state to the type level,
-since state becomes part of the type system, the compiler should able to reason about state,
+In a nutshell, typestates can be thought as a mechanism to constrain APIs as the program state evolves.
+More formally, typestates belong to the behavioral types category and
+are built on the idea of lifting state to the type level since state becomes part of the type system,
+the compiler should be able to reason about state,
 effectively helping the developer track state and validate certain assumptions.
 
 \paragraph{How are typestates useful?}
-
 Diving deeper on how do typestates help the developer, we provide a simple yet classic example.
 Consider a stream, whether it be a file or a socket, to be read, the stream must first be open before being read and finally closed.
 
@@ -149,11 +145,12 @@ s.nextLine();                       // IllegalStateException
     \end{minted}
 \end{code}
 
-In \autoref{lst:scanner-misuse} the developer tries to read a line after closing the stream,
-when ran, \autoref{lst:scanner-misuse} yields a \texttt{IllegalStateException} since you cannot read from a closed stream.
+The code in \autoref{lst:scanner-misuse} tries to read a line after closing the stream,
+it will crash during runtime with a \texttt{IllegalStateException} since you cannot read from a closed stream.
 
 The fact that this code compiles without warnings (even when \texttt{-Xlint:all} is used) is problematic,
-since the error can only be caught at runtime.
+since the error will lead to a crash during runtime
+(equally, if line 3 was \mintinline{java}{s = null;}, no warnings would issued).
 While the presented example is simple, production-code is not,
 and code paths that raise runtime errors may be untested until it reaches the hands of the user\footnote{\url{https://github.com/redis/jedis/issues/1747}}.
 
@@ -175,13 +172,12 @@ The compiler is now able to provide the developer with an error at compile-time
 since it now knows that the \texttt{Scanner} is closed and thus,
 it does not have a function \texttt{nextLine}.
 
-\paragraph{Aliasing Control}
-
+\paragraph{Aliasing Control.}
 Besides the pro-safety mentality of Rust,
 another key detail which makes Rust a solid candidate for typestates is its aliasing control.
 
-By definition, typestates are incompatible with aliasing,
-this is due to the fact that if an object is being used by $N$ clients,
+By definition, typestates are incompatible with aliasing
+due to the fact that if an object is being used by $N$ clients,
 when a client mutates an object, all other clients guarantees are broken.
 Back to the stream example, if a client closes the stream,
 all other clients may crash since they may try to read from a stream which is now closed.
@@ -206,15 +202,13 @@ Such type system allows us to emulate typestates by \emph{forcing a move} whenev
 this way, the previous state is “\emph{destroyed}” and cannot be mutated.
 
 \subsection*{Typestating Rust}
-
 Rust previously had a typestate system which was removed in version 0.4 since it “did not pull its own weight”.
-The idea I propose is not aimed at bringing back the old typestate system but rather at leveraging Rust's type system to allow for typestated structures.
-In short, I propose a DSL built with procedural macros which takes advantage of Rust's generics and affine type system capabilities.
+The idea we propose is not aimed at bringing back the old typestate system but rather at leveraging Rust's type system to allow for typestated structures.
+In short, we propose a DSL built with procedural macros which takes advantage of Rust's generics and affine type system capabilities.
 
-\paragraph{The Typestate Pattern}
-
-As of now, it is possible for a developer to make use of typestates in Rust,
-the key idea is to write functions which consume the current object and return a new object,
+\paragraph{The Typestate Pattern.}
+As of now, it is possible for a developer to make use of typestates in Rust
+the key idea is to write functions which consume the current object and return a new object
 the function signature should be similar to \mintinline{rust}{fn transition(self: OldState, args...) -> NewState}.
 
 Each state can then carry information, or not, being a simple 0-sized structure.
@@ -239,24 +233,23 @@ An example implementation of the typestate pattern is available in \url{https://
 % }
 % \end{minted}
 
-\paragraph{Proposal}
-
-The code necessary to implement the typestate pattern requires a lot of boilerplate,
-furthermore, we want to be able to prove typestate properties (e.g. that all states are productive).
-The former challenge can be solved through the use of macros,
-and the latter is not novel in the literature,
+\paragraph{Proposal.}
+The code necessary to implement the typestate pattern requires a lot of boilerplate furthermore,
+we want to be able to prove typestate properties (e.g. reachability and termination).
+The former challenge can be solved through the use of macros, and the latter is not novel in the literature
 to address it we just need to extract the state machine from the code and apply existing algorithms.
 
 However, to do so without writing a static checker from the ground up we are required to use Rust's procedural function-like macros,
-these enable the creation of a DSL for typestates,
+which enable the creation of a DSL for typestates,
 thus solving both the boilerplate problem and the requirement for the ability to prove certain properties.
 
 Existing work on the Rust ecosystem regarding typestate-like mechanisms is limited,
-we've reviewed several automata crates and only one provided strong compile-time guarantees,
-such crate was the \texttt{state\_machine\_future} crate, the crate, however, requires a runtime such as Tokio, due to being centered around asynchronous computations.
+we have reviewed several automata crates and only one provided strong compile-time guarantees,
+such crate was the \texttt{state\_machine\_future} crate,
+however it requires a runtime such as Tokio due to being centered around asynchronous computations.
 
 Our approach aims to extend the ideas behind \texttt{state\_machine\_future} with an expressive DSL and
-the possibility to be used without a runtime.
+the possibility to be used without a runtime in a purely static approach.
 Currently, a prototype is under development and can be found in \url{https://github.com/rustype/typestate-rs}.
 
 % \begin{minted}{rust}
